@@ -17,6 +17,9 @@ var noop = function noop() {};
 
 // global var
 const baseUrl = 'http://www.javbus.in';
+//const startUrl = 'http://www.javbus.in/series/3hf';
+//const startUrl = 'http://www.javbus.in/series/2x5';
+const startUrl = 'http://www.javbus.in/series/2b5';
 var pageIndex = 1;
 var currentPageHtml = null;
 
@@ -117,6 +120,7 @@ function getMagnet(links, next) {
 					if (hasLimit && count < 1) {
 						return callback(new Error('limit'));
 					};
+                    console.log("处理链接: %s 番号: %s".green, link, link.split('/').pop())
 					if (err) {
 						if (!progress) console.error('番号%s页面获取失败：%s'.red, link.split('/').pop(), err.message);
 						return callback(null);
@@ -124,7 +128,16 @@ function getMagnet(links, next) {
 					let $ = cheerio.load(res.text);
 					let script = $('script', 'body').eq(2).html();
 					let meta = parse(script);
+                    var artists = "|"
+                    $('.star-name > a').each(function(i, link){
+                        var name = $(this).attr('title')
+                        var code = $(this).attr('href').split("/").pop()
+                        artists += name + "(" + code + ")`"
+                    })
+                    artists += "|"
+                    var title = $('h3').text()
 					//console.log('fetch link: %S'.blue, link);
+                    console.log("getting url %s".red, baseUrl + "/ajax/uncledatoolsbyajax.php?gid=" + meta.gid + "&lang=" + meta.lang + "&img=" + meta.img + "&uc=" + meta.uc + "&floor=" + Math.floor(Math.random() * 1e3 + 1));
 					request
 						.get(baseUrl + "/ajax/uncledatoolsbyajax.php?gid=" + meta.gid + "&lang=" + meta.lang + "&img=" + meta.img + "&uc=" + meta.uc + "&floor=" + Math.floor(Math.random() * 1e3 + 1))
 						.set('Referer', 'http://www.javbus.in/SCOP-094')
@@ -142,7 +155,7 @@ function getMagnet(links, next) {
 							let anchor = $('[onclick]').first().attr('onclick');
 							if (anchor) {
 								anchor = /\'(magnet:.+?)\'/g.exec(anchor)[1];
-								fs.appendFile(output, anchor + '\r\n', function(err) {
+								fs.appendFile(output, link.split("/").pop() + artists + anchor + '\r\n', function(err) {
 									if (err) {
 										throw err;
 										return callback(err);
@@ -193,9 +206,9 @@ function getMagnet(links, next) {
 
 function pageExist(callback) {
 	if (hasLimit && count < 1) return callback();
-	let url = baseUrl + (pageIndex === 1 ? '' : '/page/' + pageIndex);
+	let url = startUrl + (pageIndex === 1 ? '' : '/page/' + pageIndex);
 	// console.log(url);
-	console.log('获取第%d页中的影片链接...'.green, pageIndex);
+	console.log('获取第%d页中的影片链接 %s...'.green, pageIndex, url);
 	let retryCount = 1;
 	async.retry(3,
 		function(callback, result) {
